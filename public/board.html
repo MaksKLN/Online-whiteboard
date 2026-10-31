@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Whiteboard</title>
+
+<style>
+body { margin:0; font-family: Arial; overflow:hidden; }
+
+.header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:10px 20px; background:#1565c0; color:white;
+}
+
+.header-left, .header-right {
+  display:flex; align-items:center; gap:15px;
+}
+
+.button {
+  cursor:pointer;
+  padding:6px 10px;
+  background:#0d47a1;
+  border-radius:5px;
+}
+
+.button:hover { background:#08306b; }
+
+.canvas-container {
+  position:relative;
+}
+
+canvas {
+  background:#f0f0f0;
+  display:block;
+}
+
+/* TOOLBAR */
+.toolbar {
+  position:absolute;
+  top:50%;
+  left:10px;
+  transform:translateY(-50%);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.tool {
+  width:40px;
+  height:40px;
+  background:#e0e0e0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  border-radius:6px;
+  transition:0.2s;
+}
+
+.tool:hover { background:#bdbdbd; }
+.tool.active { background:#90caf9; }
+
+.history {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  background: white;
+  padding: 10px;
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.history button {
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.history button:hover {
+  background: #e0e0e0;
+}
+
+/* ZOOM */
+.zoom {
+  position:absolute;
+  bottom:20px;
+  right:20px;
+  background:white;
+  padding:10px;
+  border-radius:8px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+/* OVERLAY */
+.overlay {
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.35);
+  display:none;
+}
+
+/* MODAL */
+.modal {
+  position:fixed;
+  top:50%; left:50%;
+  transform:translate(-50%, -50%);
+  background:white;
+  padding:50px;
+  border-radius:12px;
+  display:none;
+  flex-direction:column;
+  gap:12px;
+  width:600px;
+}
+
+.close {
+  position:absolute;
+  top:10px;
+  right:15px;
+  cursor:pointer;
+  font-size:18px;
+}
+
+/* DROPDOWN */
+.dropdown {
+  position:absolute;
+  top:60px;
+  right:20px;
+  background:white;
+  padding:10px;
+  border-radius:8px;
+  display:none;
+  flex-direction:column;
+  gap:10px;
+  min-width:220px;
+}
+
+.user {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.avatar {
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  background:#ccc;
+}
+
+/* SHARE */
+.share-section {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.share-row {
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+input {
+  padding:6px;
+  width:100%;
+}
+
+button {
+  padding:6px 10px;
+  cursor:pointer;
+}
+
+input[type="range"] {
+  width:100%;
+}
+
+#textPanel {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.share-block {
+  margin-top:15px;
+  padding:12px;
+  border:1px solid #eee;
+  border-radius:10px;
+  background:#fafafa;
+}
+
+.share-title {
+  font-size:13px;
+  color:#444;
+  margin-bottom:10px;
+  font-weight:bold;
+}
+
+.share-row {
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.share-row input {
+  flex:1;
+  padding:6px;
+  border:1px solid #ddd;
+  border-radius:6px;
+}
+
+.share-row select {
+  padding:6px;
+  border-radius:6px;
+  border:1px solid #ddd;
+}
+
+.share-row button {
+  padding:6px 10px;
+  border:none;
+  border-radius:6px;
+  background:#1565c0;
+  color:white;
+  cursor:pointer;
+}
+
+.share-row button:hover {
+  background:#0d47a1;
+}
+
+.share-row select {
+  flex: 1;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  background: white;
+  font-size: 14px;
+}
+
+.shape-btn {
+  padding: 8px;
+  background: #f0f0f0;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  font-size: 18px;
+  transition: 0.15s;
+}
+
+.shape-btn:hover { background: #bdbdbd; }
+.shape-btn.active { background: #90caf9; }
+
+</style>
+</head>
+
+<body>
+
+<div class="overlay" id="overlay" onclick="closeAll()"></div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="button" onclick="window.location.href='/dashboard.html'">Главная</div>
+    <div id="boardTitle">Загрузка...</div>
+  </div>
+
+  <div class="header-right">
+    <div class="button" onclick="toggleChat(event)" style="position:relative;">
+      💬
+      <span id="chatBadge" style="
+        display:none;
+        position:absolute;
+        top:-4px; right:-4px;
+        background:#e53935;
+        color:white;
+        border-radius:50%;
+        width:16px; height:16px;
+        font-size:10px;
+        display:flex; align-items:center; justify-content:center;
+      ">0</span>
+    </div>
+    <div class="button" onclick="toggleShare(event)">Поделиться</div>
+    <div class="button" onclick="toggleUsers(event)">Пользователи</div>
+    <div class="button" onclick="toggleNotifications(event)" style="position:relative;">
+      🔔
+      <span id="notifBadge" style="
+        display:none;
+        position:absolute;
+        top:-4px; right:-4px;
+        background:#e53935;
+        color:white;
+        border-radius:50%;
+        width:16px; height:16px;
+        font-size:10px;
+        display:flex; align-items:center; justify-content:center;
+      ">0</span>
+    </div>
+    <div class="button" onclick="toggleSettings(event)">⚙️</div>
+  </div>
+</div>
+
+<!-- CANVAS -->
+<div class="canvas-container">
+  <canvas id="board"></canvas>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="tool active" data-tool="pan" onclick="setTool('pan', event)">🤚</div>
+  <div class="tool" data-tool="text" onclick="setTool('text', event)">T</div>
+  <div class="tool" data-tool="draw" onclick="setTool('draw', event)">✏️</div>
+  <div class="tool" data-tool="erase" onclick="setTool('erase', event)">🧹</div>
+  <div class="tool" data-tool="select" onclick="setTool('select', event)">✂️</div>
+  <div class="tool" data-tool="shapes" onclick="setTool('shapes', event)">⬛</div>
+</div>
+
+<div class="history">
+  <button onclick="undo()">↩</button>
+  <button onclick="redo()">↪</button>
+</div>
+
+<!-- ZOOM -->
+<div class="zoom">
+  <button onclick="toggleGrid()" id="gridBtn" title="Сетка">⊞</button>
+  <button onclick="zoomOut()">-</button>
+  <span id="zoomValue">100%</span>
+  <button onclick="zoomIn()">+</button>
+</div>
+
+<!-- SHARE -->
+<div class="modal" id="shareModal" onclick="event.stopPropagation()">
+
+  <div class="close" onclick="closeAll()">✖</div>
+
+  <h3>Поделиться доской</h3>
+  <p style="color:#666; margin-top:-5px; font-size:13px;">
+    Пригласите участников или скопируйте ссылку
+  </p>
+
+  <!-- INVITE -->
+  <div class="share-block">
+
+    <div class="share-title">Пригласить пользователя</div>
+
+    <div class="share-row">
+      <input id="inviteUsername" placeholder="Имя пользователя" style="min-width: 300px;">
+      <select id="inviteRole">
+        <option value="viewer">Зритель</option>
+        <option value="editor">Редактор</option>
+      </select>
+      <button onclick="inviteUser()">Пригласить</button>
+    </div>
+    <div id="inviteResult" style="font-size:13px; color:green;"></div>
+
+  </div>
+
+  <!-- LINK -->
+  <div class="share-block">
+    <div class="share-title">Ссылка на доску</div>
+    <div class="share-row">
+      <select id="linkRole">
+        <option value="viewer">Зритель</option>
+        <option value="editor">Редактор</option>
+      </select>
+      <button onclick="generateLink()">Создать ссылку</button>
+    </div>
+    <div class="share-row" id="linkRow" style="display:none;">
+      <input id="linkInput" readonly>
+      <button onclick="copyLink()">Копировать</button>
+    </div>
+  </div>
+</div>
+
+<!-- USERS -->
+<div class="dropdown" id="users" onclick="event.stopPropagation()">
+  <div style="font-weight:bold; margin-bottom:5px;">Участники</div>
+  <div id="usersListContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+</div>
+
+<div class="dropdown" id="notifications" onclick="event.stopPropagation()" style="max-width:320px;">
+  <div style="font-weight:bold; margin-bottom:5px;">Приглашения</div>
+  <div id="notifList" style="display:flex; flex-direction:column; gap:10px;"></div>
+</div>
+
+<!-- SETTINGS -->
+<div class="dropdown" id="settings" onclick="event.stopPropagation()">
+  <div class="user">
+    <div class="avatar" style="background:${hashColor(user.username)}; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; font-size:14px;">
+      ${user.username.charAt(0).toUpperCase()}
+    </div>
+    <div id="settingsUsername"></div>
+  </div>
+  <button>Настройки</button>
+</div>
+
+<!-- SOCKET + APP -->
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+
+<script>
+
+function toggleGrid() {
+  showGrid = !showGrid;
+  document.getElementById("gridBtn").style.background = showGrid ? "#90caf9" : "";
+  redraw();
+}
+
+socket.on("notification", (data) => {
+  if (user && data.userId === user.id) {
+    loadNotifications();
+  }
+});
+
+async function loadBoardTitle() {
+  const res = await fetch(`/api/boards/${boardId}`);
+  const data = await res.json();
+  if (res.ok) {
+    document.getElementById("boardTitle").textContent = data.title;
+  }
+}
+
+loadBoardTitle();
+
+if (user) document.getElementById("settingsUsername").textContent = user.username;
+
+const avatarEl = document.querySelector("#settings .avatar");
+if (avatarEl && user) {
+  avatarEl.style.background = hashColor(user.username);
+  avatarEl.style.display = "flex";
+  avatarEl.style.alignItems = "center";
+  avatarEl.style.justifyContent = "center";
+  avatarEl.style.color = "white";
+  avatarEl.style.fontWeight = "bold";
+  avatarEl.style.fontSize = "14px";
+  avatarEl.textContent = user.username.charAt(0).toUpperCase();
+}
+
+function hashColor(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return `hsl(${Math.abs(hash) % 360}, 60%, 50%)`;
+}
+
+function copyLink(){
+  navigator.clipboard.writeText("http://board-link");
+}
+
+function closeAll(){
+  document.getElementById("overlay").style.display="none";
+  document.getElementById("shareModal").style.display="none";
+  document.getElementById("users").style.display="none";
+  document.getElementById("settings").style.display="none";
+  document.getElementById("notifications").style.display = "none";
+  chatOpen = false;
+  document.getElementById("chatPanel").style.display = "none";
+}
+
+function toggleShare(e){
+  e.stopPropagation();
+  closeAll();
+  document.getElementById("overlay").style.display="block";
+  document.getElementById("shareModal").style.display="flex";
+}
+
+function toggleUsers(e){
+  e.stopPropagation();
+
+  const menu = document.getElementById("users");
+
+  const isOpen = menu.style.display === "flex";
+
+  closeAll();
+
+  if (!isOpen) {
+    menu.style.display = "flex";
+  }
+}
+
+function toggleSettings(e){
+  e.stopPropagation();
+
+  const menu = document.getElementById("settings");
+
+  const isOpen = menu.style.display === "flex";
+
+  closeAll();
+
+  if (!isOpen) {
+    menu.style.display = "flex";
+  }
+}
+
+async function inviteUser() {
+  const username = document.getElementById("inviteUsername").value.trim();
+  const role = document.getElementById("inviteRole").value;
+  const result = document.getElementById("inviteResult");
+
+  if (!username) return;
+
+  const res = await fetch(`/api/boards/${boardId}/invite`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, role, userId: user.id })
+  });
+
+  const data = await res.json();
+
+  if (res.ok) {
+    result.style.color = "green";
+    result.textContent = `${username} приглашён как ${role === "editor" ? "редактор" : "зритель"}`;
+    document.getElementById("inviteUsername").value = "";
+  } else {
+    result.style.color = "red";
+    result.textContent = data.error || "Ошибка";
+  }
+}
+
+async function generateLink() {
+  const role = document.getElementById("linkRole").value;
+
+  const res = await fetch(`/api/boards/${boardId}/invite-link`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role, userId: user.id })
+  });
+
+  const data = await res.json();
+  if (!res.ok) return alert(data.error);
+
+  const link = `${window.location.origin}/board.html?id=${boardId}&token=${data.token}`;
+  document.getElementById("linkInput").value = link;
+  document.getElementById("linkRow").style.display = "flex";
+}
+
+function copyLink() {
+  const val = document.getElementById("linkInput").value;
+  navigator.clipboard.writeText(val);
+}
+
+// -------- NOTIFICATIONS --------
+async function loadNotifications() {
+  if (!user) return;
+
+  const res = await fetch(`/api/notifications?userId=${user.id}`);
+  const notifs = await res.json();
+
+  const badge = document.getElementById("notifBadge");
+  const list = document.getElementById("notifList");
+
+  if (notifs.length > 0) {
+    badge.style.display = "flex";
+    badge.textContent = notifs.length;
+  } else {
+    badge.style.display = "none";
+  }
+
+  list.innerHTML = "";
+
+  if (notifs.length === 0) {
+    list.innerHTML = '<div style="color:#999; font-size:13px;">Нет новых приглашений</div>';
+    return;
+  }
+
+  notifs.forEach(n => {
+    const div = document.createElement("div");
+    div.style.cssText = "padding:10px; background:#f5f5f5; border-radius:8px;";
+
+    const roleLabel = n.role === "editor" ? "редактора" : "зрителя";
+
+    div.innerHTML = `
+      <div style="font-size:13px; margin-bottom:6px;">
+        <b>${n.from_username}</b> приглашает вас на доску<br>
+        <b>${n.board_title}</b> в роли ${roleLabel}
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button onclick="acceptNotif(${n.id})" style="flex:1; background:#1565c0; color:white; border:none; border-radius:6px; padding:6px; cursor:pointer;">Принять</button>
+        <button onclick="declineNotif(${n.id}, this)" style="flex:1; background:#e0e0e0; border:none; border-radius:6px; padding:6px; cursor:pointer;">Отклонить</button>
+      </div>
+      <div id="notifMsg_${n.id}" style="font-size:12px; margin-top:4px; color:green;"></div>
+    `;
+
+    list.appendChild(div);
+  });
+}
+
+async function acceptNotif(id) {
+  const res = await fetch(`/api/notifications/${id}/accept`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId: user.id })
+  });
+
+  if (res.ok) {
+    document.getElementById(`notifMsg_${id}`)?.textContent && null;
+    await loadNotifications();
+  }
+}
+
+async function declineNotif(id) {
+  const res = await fetch(`/api/notifications/${id}/decline`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId: user.id })
+  });
+
+  if (res.ok) {
+    await loadNotifications();
+  }
+}
+
+function toggleNotifications(e) {
+  e.stopPropagation();
+  const menu = document.getElementById("notifications");
+  const isOpen = menu.style.display === "flex";
+  closeAll();
+  if (!isOpen) {
+    loadNotifications();
+    menu.style.display = "flex";
+  }
+}
+
+</script>
+<div id="brushPanel" style="
+  position:absolute;
+  top:0;
+  left:0;
+  width:180px;
+  background:white;
+  padding:12px;
+  border-radius:10px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.2);
+  display:none;
+  flex-direction:column;
+  gap:10px;
+  z-index:9999;
+  overflow:hidden;
+">
+  
+  <div>
+    <b>Цвет</b>
+    <input type="color" id="colorPicker" value="#000000" style="width:100%;">
+  </div>
+
+  <div>
+    <b>Толщина</b>
+    <input type="range" id="sizePicker" min="1" max="20" value="2">
+  </div>
+</div>
+
+<div id="textPanel" style="
+  position:absolute;
+  width:180px;
+  background:white;
+  padding:12px;
+  border-radius:10px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.2);
+  display:none;
+  flex-direction:column;
+  gap:10px;
+  z-index:9999;
+">
+  <div>
+    <b>Цвет текста</b>
+    <input type="color" id="textColor" value="#000000" style="width:100%;">
+  </div>
+
+  <div>
+    <b>Размер текста</b>
+    <input type="range" id="textSize" min="10" max="80" value="20">
+  </div>
+</div>
+
+<div id="shapesPanel" style="
+  position:absolute;
+  width:160px;
+  background:white;
+  padding:12px;
+  border-radius:10px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.2);
+  display:none;
+  flex-direction:column;
+  gap:8px;
+  z-index:9999;
+">
+  <b>Фигуры</b>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+    <div class="shape-btn" data-shape="line" title="Линия">─</div>
+    <div class="shape-btn" data-shape="arrow" title="Стрелка">→</div>
+    <div class="shape-btn" data-shape="dashed-line" title="Пунктир">╌</div>
+    <div class="shape-btn" data-shape="dashed-arrow" title="Пунктирная стрелка">⤍</div>
+    <div class="shape-btn" data-shape="rect" title="Прямоугольник">▭</div>
+    <div class="shape-btn" data-shape="square" title="Квадрат">☐</div>
+    <div class="shape-btn" data-shape="circle" title="Круг">〇</div>
+    <div class="shape-btn" data-shape="ellipse" title="Эллипс">⬭</div>
+    <div class="shape-btn" data-shape="triangle" title="Треугольник">△</div>
+    <div class="shape-btn" data-shape="diamond" title="Ромб">◇</div>
+  </div>
+  <div>
+    <b>Цвет</b>
+    <input type="color" id="shapeColor" value="#000000" style="width:100%;">
+  </div>
+  <div>
+    <b>Толщина рамки</b>
+    <input type="range" id="shapeSize" min="1" max="20" value="2">
+  </div>
+  <div style="display:flex; align-items:center; gap:8px;">
+    <b>Заливка</b>
+    <input type="checkbox" id="shapeFill">
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll(".shape-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".shape-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentShape = btn.dataset.shape;
+      console.log("shape selected:", currentShape);
+    });
+  });
+</script>
+
+<div id="chatPanel" style="
+  display:none;
+  position:fixed;
+  bottom:80px;
+  right:20px;
+  width:320px;
+  height:480px;
+  background:white;
+  border-radius:12px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.15);
+  flex-direction:column;
+  overflow:hidden;
+  z-index:1000;
+">
+  <div
+    style="padding:12px 16px; background:#1565c0; color:white; font-weight:bold; font-size:14px; display:flex; justify-content:space-between; align-items:center;">
+    Чат
+    <span onclick="toggleChat(event)" style="cursor:pointer; font-size:16px;">✕</span>
+  </div>
+
+  <div id="chatMessages" style="
+    flex:1;
+    overflow-y:auto;
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  "></div>
+
+  <div style="padding:10px; border-top:1px solid #eee; display:flex; gap:8px;">
+    <input id="chatInput" placeholder="Сообщение..." style="
+      flex:1;
+      padding:8px 12px;
+      border:1px solid #ddd;
+      border-radius:20px;
+      outline:none;
+      font-size:13px;
+    ">
+    <button onclick="sendChatMessage()" style="
+      padding:8px 14px;
+      background:#1565c0;
+      color:white;
+      border:none;
+      border-radius:20px;
+      cursor:pointer;
+      font-size:13px;
+    ">→</button>
+  </div>
+</div>
+
+</body>
+</html>

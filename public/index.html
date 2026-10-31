@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+
+<style>
+body {
+  margin:0;
+  font-family: Arial;
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#f5f5f5;
+}
+
+/* CARD */
+.auth-box {
+  width:360px;
+  background:white;
+  border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
+  overflow:hidden;
+}
+
+/* SECTIONS */
+.section {
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.section + .section {
+  border-top:1px solid #eee;
+}
+
+/* TITLES */
+h3 {
+  margin:0;
+}
+
+/* INPUTS */
+input {
+  padding:10px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  outline:none;
+}
+
+input:focus {
+  border-color:#1565c0;
+}
+
+/* BUTTONS */
+button {
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  background:#1565c0;
+  color:white;
+}
+
+button:hover {
+  background:#0d47a1;
+}
+
+/* SECONDARY BUTTON */
+.secondary {
+  background:#e0e0e0;
+  color:black;
+}
+
+.secondary:hover {
+  background:#ccc;
+}
+
+.small {
+  font-size:12px;
+  color:#666;
+}
+</style>
+</head>
+
+<body>
+
+<div class="auth-box">
+
+  <!-- LOGIN -->
+  <div class="section">
+    <h3>Авторизация</h3>
+
+    <input id="loginEmail" placeholder="Имя">
+    <input id="loginPass" type="password" placeholder="Пароль">
+
+    <button onclick="login()">Войти</button>
+  </div>
+
+  <!-- REGISTER -->
+  <div class="section">
+    <h3>Регистрация</h3>
+
+    <input id="regName" placeholder="Имя">
+    <input id="regPass" type="password" placeholder="Пароль">
+
+    <button onclick="register()">Создать аккаунт</button>
+
+    <div class="small">
+      После регистрации вы сможете создавать доски
+    </div>
+  </div>
+
+</div>
+
+<script>
+
+// ---------------- LOGIN ----------------
+async function login(){
+  const username = document.getElementById("loginEmail").value;
+  const password = document.getElementById("loginPass").value;
+
+  if(!username || !password){
+    alert("Заполните поля");
+    return;
+  }
+
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ username, password })
+  });
+
+  const data = await res.json();
+
+  if(res.ok){
+    localStorage.setItem("user", JSON.stringify(data));
+    window.location.href = "/dashboard.html";
+  } else {
+    alert(data.error || "Ошибка входа");
+  }
+}
+
+// ---------------- REGISTER ----------------
+async function register(){
+  const username = document.getElementById("regName").value;
+  const password = document.getElementById("regPass").value;
+
+  if(!username || !password){
+    alert("Заполните поля");
+    return;
+  }
+
+  const res = await fetch("/api/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ username, password })
+  });
+
+  const data = await res.json();
+
+  if(res.ok){
+    alert("Аккаунт создан! Теперь войдите");
+  } else {
+    alert(data.error || "Ошибка регистрации");
+  }
+}
+
+</script>
+
+</body>
+</html>

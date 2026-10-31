@@ -1,0 +1,45 @@
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS boards (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  owner_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS board_users (
+  id SERIAL PRIMARY KEY,
+  board_id INTEGER REFERENCES boards(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  role TEXT CHECK (role IN ('owner', 'editor', 'viewer')) NOT NULL,
+  UNIQUE(board_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS board_data (
+  board_id INTEGER PRIMARY KEY REFERENCES boards(id) ON DELETE CASCADE,
+  data JSONB
+);
+
+CREATE TABLE IF NOT EXISTS invites (
+  id SERIAL PRIMARY KEY,
+  board_id INTEGER REFERENCES boards(id) ON DELETE CASCADE,
+  token TEXT UNIQUE NOT NULL,
+  role TEXT CHECK (role IN ('editor', 'viewer')) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  board_id INTEGER REFERENCES boards(id) ON DELETE CASCADE,
+  role TEXT NOT NULL,
+  from_username TEXT NOT NULL,
+  status TEXT DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT NOW()
+);

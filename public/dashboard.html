@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard</title>
+
+<style>
+body {
+  margin:0;
+  font-family: Arial;
+  background:#f5f5f5;
+}
+
+/* HEADER */
+.header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 20px;
+  background:#1565c0;
+  color:white;
+}
+
+.header-left, .header-right {
+  display:flex;
+  align-items:center;
+  gap:15px;
+}
+
+.button {
+  cursor:pointer;
+  padding:6px 10px;
+  background:#0d47a1;
+  border-radius:5px;
+}
+
+.button:hover {
+  background:#08306b;
+}
+
+/* FILTERS */
+.filters {
+  display:flex;
+  gap:15px;
+  padding:20px;
+  align-items: center;
+}
+
+.filter {
+  padding:8px 14px;
+  background:white;
+  border-radius:8px;
+  cursor:pointer;
+  border:1px solid #ddd;
+  transition:0.2s;
+}
+
+.filter.active {
+  background:#1565c0;
+  color:white;
+}
+
+.create-btn {
+  margin-left: auto;
+  padding: 8px 16px;
+  background: #1565c0;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.create-btn:hover {
+  background: #0d47a1;
+}
+
+/* BOARDS GRID */
+.boards {
+  display:flex;
+  flex-wrap:wrap;
+  gap:20px;
+  padding:20px;
+  margin-left: 30px;
+}
+
+/* EMPTY STATE */
+.empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: #999;
+  width: 100%;
+  font-size: 16px;
+}
+
+/* CARD */
+.card {
+  width:180px;
+  background:white;
+  border-radius:12px;
+  padding:10px;
+  cursor:pointer;
+  transition:0.2s;
+  position: relative;
+}
+
+.card:hover {
+  transform:translateY(-3px);
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);
+}
+
+.card:hover .card-menu-btn {
+  opacity: 1;
+}
+
+.card-menu-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 24px;
+  height: 24px;
+  background: rgba(0,0,0,0.35);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: 0.15s;
+}
+
+.preview {
+  width:100%;
+  aspect-ratio:1/1;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:48px;
+  font-weight:bold;
+  color:white;
+  position:relative;
+  overflow:hidden;
+}
+
+.title {
+  margin-top:10px;
+  font-weight:bold;
+  text-align:center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.owner, .date {
+  font-size:12px;
+  color:#666;
+  text-align:center;
+}
+
+/* SETTINGS DROPDOWN */
+.dropdown {
+  position:absolute;
+  top:60px;
+  right:20px;
+  background:white;
+  padding:10px;
+  border-radius:8px;
+  display:none;
+  flex-direction:column;
+  gap:10px;
+  min-width:220px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 100;
+}
+
+/* CARD CONTEXT MENU */
+.card-context-menu {
+  position: fixed;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  display: none;
+  flex-direction: column;
+  z-index: 1000;
+  overflow: hidden;
+  min-width: 160px;
+}
+
+.card-context-menu button {
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.card-context-menu button:hover {
+  background: #f5f5f5;
+}
+
+.card-context-menu button.danger {
+  color: #e53935;
+}
+
+/* MODAL */
+.overlay {
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background: rgba(0,0,0,0.35);
+  display:none;
+  z-index: 200;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+  width: 340px;
+  z-index: 300;
+}
+
+.modal h3 {
+  margin: 0;
+}
+
+.modal input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.modal input:focus {
+  border-color: #1565c0;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.modal-buttons button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.modal-buttons .btn-primary {
+  background: #1565c0;
+  color: white;
+}
+
+.modal-buttons .btn-primary:hover {
+  background: #0d47a1;
+}
+
+.modal-buttons .btn-cancel {
+  background: #e0e0e0;
+}
+
+.modal-buttons .btn-cancel:hover {
+  background: #ccc;
+}
+
+.user {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.avatar {
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  background:#ccc;
+}
+</style>
+</head>
+
+<body>
+
+<div class="overlay" id="overlay" onclick="closeAll()"></div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div style="font-weight:bold; font-size:16px;">📋 Мои доски</div>
+  </div>
+
+  <div class="header-right">
+    <div class="button" onclick="toggleNotifications(event)" style="position:relative;">
+      🔔
+      <span id="notifBadge" style="
+        display:none;
+        position:absolute;
+        top:-4px; right:-4px;
+        background:#e53935;
+        color:white;
+        border-radius:50%;
+        width:16px; height:16px;
+        font-size:10px;
+        display:flex; align-items:center; justify-content:center;
+      ">0</span>
+    </div>
+    <div class="button" onclick="toggleSettings(event)">⚙️</div>
+  </div>
+</div>
+
+<!-- FILTERS + CREATE -->
+<div class="filters">
+  <div class="filter active" data-filter="all">Все доски</div>
+  <div class="filter" data-filter="owner">Мои</div>
+  <div class="filter" data-filter="shared">Доступные</div>
+
+  <button class="create-btn" onclick="openCreateModal()">+ Новая доска</button>
+</div>
+
+<!-- BOARDS -->
+<div class="boards" id="boardsContainer">
+  <div class="empty">Загрузка...</div>
+</div>
+
+<div class="dropdown" id="notifications" onclick="event.stopPropagation()" style="max-width:320px;">
+  <div style="font-weight:bold; margin-bottom:5px;">Приглашения</div>
+  <div id="notifList" style="display:flex; flex-direction:column; gap:10px;"></div>
+</div>
+
+<!-- SETTINGS -->
+<div class="dropdown" id="settings" onclick="event.stopPropagation()">
+  <div class="user">
+    <div class="avatar" style="background:${hashColor(user.username)}; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; font-size:14px;">
+      ${user.username.charAt(0).toUpperCase()}
+    </div>
+    <div id="username"></div>
+  </div>
+  <button onclick="logout()">Выйти</button>
+</div>
+
+<!-- CARD CONTEXT MENU -->
+<div class="card-context-menu" id="cardContextMenu">
+  <button onclick="renameCurrentBoard()">Переименовать</button>
+  <button class="danger" onclick="deleteCurrentBoard()">Удалить</button>
+</div>
+
+<!-- CREATE MODAL -->
+<div class="modal" id="createModal" onclick="event.stopPropagation()">
+  <h3>Новая доска</h3>
+  <input id="boardTitleInput" placeholder="Название доски" maxlength="60">
+  <div class="modal-buttons">
+    <button class="btn-cancel" onclick="closeAll()">Отмена</button>
+    <button class="btn-primary" onclick="createBoard()">Создать</button>
+  </div>
+</div>
+
+<!-- RENAME MODAL -->
+<div class="modal" id="renameModal" onclick="event.stopPropagation()">
+  <h3>Переименовать</h3>
+  <input id="renameTitleInput" placeholder="Новое название" maxlength="60">
+  <div class="modal-buttons">
+    <button class="btn-cancel" onclick="closeAll()">Отмена</button>
+    <button class="btn-primary" onclick="submitRename()">Сохранить</button>
+  </div>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const user = JSON.parse(localStorage.getItem("user"));
+if (!user) window.location.href = "/";
+
+document.getElementById("username").textContent = user.username;
+
+const avatarEl = document.querySelector("#settings .avatar");
+if (avatarEl && user) {
+  avatarEl.style.background = hashColor(user.username);
+  avatarEl.style.display = "flex";
+  avatarEl.style.alignItems = "center";
+  avatarEl.style.justifyContent = "center";
+  avatarEl.style.color = "white";
+  avatarEl.style.fontWeight = "bold";
+  avatarEl.style.fontSize = "14px";
+  avatarEl.textContent = user.username.charAt(0).toUpperCase();
+}
+
+// ---------------- STATE ----------------
+let allBoards = [];
+let currentFilter = "all";
+let contextBoardId = null;
+
+// ---------------- COLORS ----------------
+function hashColor(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return `hsl(${Math.abs(hash) % 360}, 60%, 50%)`;
+}
+
+function getFirstLetter(title) {
+  return title.trim().charAt(0).toUpperCase();
+}
+
+// ---------------- LOAD ----------------
+async function loadBoards() {
+  try {
+    const res = await fetch(`/api/boards?userId=${user.id}`);
+    allBoards = await res.json();
+    renderBoards(currentFilter);
+  } catch (e) {
+    document.getElementById("boardsContainer").innerHTML =
+      '<div class="empty">Ошибка загрузки досок</div>';
+  }
+}
+
+// ---------------- RENDER ----------------
+function renderBoards(filter = "all") {
+  const container = document.getElementById("boardsContainer");
+  container.innerHTML = "";
+
+  const filtered = filter === "all"
+    ? allBoards
+    : filter === "shared"
+      ? allBoards.filter(b => b.role !== "owner")
+      : allBoards.filter(b => b.role === filter);
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty">Нет досок. Создайте первую!</div>';
+    return;
+  }
+
+  filtered.forEach(b => {
+    const el = document.createElement("div");
+    el.className = "card";
+    el.onclick = () => openBoard(b.id);
+
+    const color = hashColor(b.title);
+    const letter = getFirstLetter(b.title);
+    const date = new Date(b.updated_at).toLocaleDateString("ru-RU");
+
+    el.innerHTML = `
+      <div class="preview" style="background:${color}">${letter}</div>
+      <button class="card-menu-btn" onclick="openCardMenu(event, ${b.id})">⋯</button>
+      <div class="title" title="${b.title}">${b.title}</div>
+      <div class="owner">Владелец: ${b.owner_name}</div>
+      <div class="date">${date}</div>
+    `;
+
+    container.appendChild(el);
+  });
+}
+
+// ---------------- FILTER ----------------
+document.querySelectorAll(".filter").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".filter").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentFilter = btn.dataset.filter;
+    renderBoards(currentFilter);
+  });
+});
+
+// ---------------- CREATE ----------------
+function openCreateModal() {
+  closeAll();
+  document.getElementById("overlay").style.display = "block";
+  const modal = document.getElementById("createModal");
+  modal.style.display = "flex";
+  document.getElementById("boardTitleInput").value = "";
+  setTimeout(() => document.getElementById("boardTitleInput").focus(), 50);
+}
+
+document.getElementById("boardTitleInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") createBoard();
+});
+
+async function createBoard() {
+  const title = document.getElementById("boardTitleInput").value.trim();
+  if (!title) return;
+
+  try {
+    const res = await fetch("/api/boards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, userId: user.id })
+    });
+
+    if (!res.ok) throw new Error();
+
+    closeAll();
+    await loadBoards();
+  } catch (e) {
+    alert("Ошибка при создании доски");
+  }
+}
+
+// ---------------- CARD MENU ----------------
+function openCardMenu(e, boardId) {
+  e.stopPropagation();
+  contextBoardId = boardId;
+
+  const menu = document.getElementById("cardContextMenu");
+  menu.style.display = "flex";
+  menu.style.top = e.clientY + "px";
+  menu.style.left = e.clientX + "px";
+}
+
+document.addEventListener("click", () => {
+  document.getElementById("cardContextMenu").style.display = "none";
+});
+
+// ---------------- DELETE ----------------
+async function deleteCurrentBoard() {
+  if (!contextBoardId) return;
+  if (!confirm("Удалить доску? Это действие нельзя отменить.")) return;
+
+  try {
+    const res = await fetch(`/api/boards/${contextBoardId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id })
+    });
+
+    if (!res.ok) throw new Error();
+
+    await loadBoards();
+  } catch (e) {
+    alert("Ошибка при удалении доски");
+  }
+}
+
+// ---------------- RENAME ----------------
+function renameCurrentBoard() {
+  if (!contextBoardId) return;
+
+  const board = allBoards.find(b => b.id === contextBoardId);
+  if (!board) return;
+
+  closeAll();
+  document.getElementById("overlay").style.display = "block";
+  const modal = document.getElementById("renameModal");
+  modal.style.display = "flex";
+  document.getElementById("renameTitleInput").value = board.title;
+  setTimeout(() => document.getElementById("renameTitleInput").focus(), 50);
+}
+
+document.getElementById("renameTitleInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") submitRename();
+});
+
+async function submitRename() {
+  const title = document.getElementById("renameTitleInput").value.trim();
+  if (!title || !contextBoardId) return;
+
+  try {
+    const res = await fetch(`/api/boards/${contextBoardId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, userId: user.id })
+    });
+
+    if (!res.ok) throw new Error();
+
+    closeAll();
+    await loadBoards();
+  } catch (e) {
+    alert("Ошибка при переименовании");
+  }
+}
+
+// ---------------- NAV ----------------
+function openBoard(id) {
+  window.location.href = `/board.html?id=${id}`;
+}
+
+function logout() {
+  localStorage.removeItem("user");
+  window.location.href = "/";
+}
+
+// ---------------- SETTINGS ----------------
+function closeAll() {
+  document.getElementById("overlay").style.display = "none";
+  document.getElementById("settings").style.display = "none";
+  document.getElementById("createModal").style.display = "none";
+  document.getElementById("renameModal").style.display = "none";
+  document.getElementById("cardContextMenu").style.display = "none";
+  document.getElementById("notifications").style.display = "none";
+  const inviteResult = document.getElementById("inviteResult");
+  if (inviteResult) inviteResult.textContent = "";
+  const inviteUsername = document.getElementById("inviteUsername");
+  if (inviteUsername) inviteUsername.value = "";
+  const linkRow = document.getElementById("linkRow");
+  if (linkRow) linkRow.style.display = "none";
+}
+
+function toggleSettings(e) {
+  e.stopPropagation();
+  const menu = document.getElementById("settings");
+  const isOpen = menu.style.display === "flex";
+  closeAll();
+  if (!isOpen) menu.style.display = "flex";
+}
+
+// -------- NOTIFICATIONS --------
+async function loadNotifications() {
+  if (!user) return;
+
+  const res = await fetch(`/api/notifications?userId=${user.id}`);
+  const notifs = await res.json();
+
+  const badge = document.getElementById("notifBadge");
+  const list = document.getElementById("notifList");
+
+  if (notifs.length > 0) {
+    badge.style.display = "flex";
+    badge.textContent = notifs.length;
+  } else {
+    badge.style.display = "none";
+  }
+
+  list.innerHTML = "";
+
+  if (notifs.length === 0) {
+    list.innerHTML = '<div style="color:#999; font-size:13px;">Нет новых приглашений</div>';
+    return;
+  }
+
+  notifs.forEach(n => {
+    const div = document.createElement("div");
+    div.style.cssText = "padding:10px; background:#f5f5f5; border-radius:8px;";
+
+    const roleLabel = n.role === "editor" ? "редактора" : "зрителя";
+
+    div.innerHTML = `
+      <div style="font-size:13px; margin-bottom:6px;">
+        <b>${n.from_username}</b> приглашает вас на доску<br>
+        <b>${n.board_title}</b> в роли ${roleLabel}
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button onclick="acceptNotif(${n.id})" style="flex:1; background:#1565c0; color:white; border:none; border-radius:6px; padding:6px; cursor:pointer;">Принять</button>
+        <button onclick="declineNotif(${n.id}, this)" style="flex:1; background:#e0e0e0; border:none; border-radius:6px; padding:6px; cursor:pointer;">Отклонить</button>
+      </div>
+      <div id="notifMsg_${n.id}" style="font-size:12px; margin-top:4px; color:green;"></div>
+    `;
+
+    list.appendChild(div);
+  });
+}
+
+async function acceptNotif(id) {
+  const res = await fetch(`/api/notifications/${id}/accept`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId: user.id })
+  });
+
+  if (res.ok) {
+    document.getElementById(`notifMsg_${id}`)?.textContent && null;
+    await loadNotifications();
+  }
+}
+
+async function declineNotif(id) {
+  const res = await fetch(`/api/notifications/${id}/decline`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId: user.id })
+  });
+
+  if (res.ok) {
+    await loadNotifications();
+  }
+}
+
+function toggleNotifications(e) {
+  e.stopPropagation();
+  const menu = document.getElementById("notifications");
+  const isOpen = menu.style.display === "flex";
+  closeAll();
+  if (!isOpen) {
+    loadNotifications();
+    menu.style.display = "flex";
+  }
+}
+
+const notifSocket = io();
+
+notifSocket.on("notification", (data) => {
+  if (data.userId === user.id) {
+    loadNotifications(); // обновляем бейдж
+  }
+});
+
+notifSocket.on("board-accepted", (data) => {
+  if (data.userId === user.id) {
+    loadBoards(); // мгновенно обновляем список досок
+  }
+});
+
+// ---------------- INIT ----------------
+loadBoards();
+</script>
+
+</body>
+</html>
